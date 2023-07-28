@@ -39,6 +39,10 @@ config MACH_STM32H743
 	bool "STMicroelectronics STM32H743"
 	default y
 
+config MACH_STM32H750
+	bool "STMicroelectronics STM32H750"
+	default y
+
 endif # ARMv7-M
 
 if ARCH_MULTI_V7

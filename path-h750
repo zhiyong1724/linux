@@ -1,0 +1,9 @@
+#!/bin/bash
+export PATH=$PATH:/home/chenzhiyong/shared/project/buildroot/output/host/bin
+echo "PATH="$PATH
+
+export ARCH=arm
+echo "ARCH="$ARCH
+
+export CROSS_COMPILE=arm-buildroot-uclinux-uclibcgnueabihf-
+echo "CROSS_COMPILE="$CROSS_COMPILE
