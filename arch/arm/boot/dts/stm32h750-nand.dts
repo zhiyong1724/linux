@@ -54,7 +54,7 @@
 	compatible = "st,stm32h750-nand", "st,stm32h750";
 
 	chosen {
-		bootargs = "console=ttySTM0,921600 init=/linuxrc";
+		bootargs = "console=ttySTM0,921600 init=/linuxrc CONSOLE=/dev/console";
 		stdout-path = "serial0:921600n8";
 	};
 

@@ -5,5 +5,5 @@ echo "PATH="$PATH
 export ARCH=arm
 echo "ARCH="$ARCH
 
-export CROSS_COMPILE=arm-buildroot-uclinux-uclibcgnueabihf-
+export CROSS_COMPILE=arm-linux-
 echo "CROSS_COMPILE="$CROSS_COMPILE
