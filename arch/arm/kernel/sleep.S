@@ -59,6 +59,9 @@
  *  r2 = MPIDR value the resuming CPU will use
  */
 ENTRY(__cpu_suspend)
+#ifdef CONFIG_ARMV7M_ENABLE_FPU
+	vstmia  sp!, {s0 - s31}
+#endif
 	stmfd	sp!, {r4 - r11, lr}
 #ifdef MULTI_CPU
 	ldr	r10, =processor
@@ -93,6 +96,9 @@ cpu_suspend_abort:
 	teq	r0, #0
 	moveq	r0, #1			@ force non-zero value
 	mov	sp, r2
+#ifdef CONFIG_ARMV7M_ENABLE_FPU
+	vldmia  sp!, {s0 - s31}
+#endif
 	ldmfd	sp!, {r4 - r11, pc}
 ENDPROC(cpu_suspend_abort)
 
@@ -115,6 +121,9 @@ ENDPROC(cpu_resume_mmu)
 cpu_resume_after_mmu:
 	bl	cpu_init		@ restore the und/abt/irq banked regs
 	mov	r0, #0			@ return zero on success
+#ifdef CONFIG_ARMV7M_ENABLE_FPU
+	vldmia  sp!, {s0 - s31}
+#endif
 	ldmfd	sp!, {r4 - r11, pc}
 ENDPROC(cpu_resume_after_mmu)
 

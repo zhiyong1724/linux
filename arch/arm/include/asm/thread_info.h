@@ -34,6 +34,40 @@ struct task_struct;
 typedef unsigned long mm_segment_t;
 
 struct cpu_context_save {
+#ifdef CONFIG_ARMV7M_ENABLE_FPU
+	__u32	s0;
+	__u32	s1;
+	__u32	s2;
+	__u32	s3;
+	__u32	s4;
+	__u32	s5;
+	__u32	s6;
+	__u32	s7;
+	__u32	s8;
+	__u32	s9;
+	__u32	s10;
+	__u32	s11;
+	__u32	s12;
+	__u32	s13;
+	__u32	s14;
+	__u32	s15;
+	__u32	s16;
+	__u32	s17;
+	__u32	s18;
+	__u32	s19;
+	__u32	s20;
+	__u32	s21;
+	__u32	s22;
+	__u32	s23;
+	__u32	s24;
+	__u32	s25;
+	__u32	s26;
+	__u32	s27;
+	__u32	s28;
+	__u32	s29;
+	__u32	s30;
+	__u32	s31;
+#endif
 	__u32	r4;
 	__u32	r5;
 	__u32	r6;

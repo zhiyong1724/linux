@@ -88,6 +88,13 @@
 #define	V7M_SCB_DCCISW		0x274	/* D-cache clean and invalidate by set-way */
 #define	V7M_SCB_BPIALL		0x278	/* D-cache clean and invalidate by set-way */
 
+/* Float point related definitions */
+#define	V7M_CP_CPACR		0xe000ed88	/* Coprocessor Access Control Register */
+#define	V7M_CP_CPACR_CP10   (3 << 20)   /* CP10 Access privileges */
+#define	V7M_CP_CPACR_CP11   (3 << 22)   /* CP11 Access privileges */
+#define	V7M_FPU_FPCCR		0xe000ef34	/* Floating-point Context Control Register */
+#define	V7M_FPU_FPCCR_ASPEN (1 << 31)	/* Enable/Disable automatic hardware state preservation and restoration for floating-point context */
+#define	V7M_FPU_FPCCR_LSPEN	(1 << 30)	/* Enable/Disable automatic lazy state preservation for floating-point context. */
 #ifndef __ASSEMBLY__
 
 enum reboot_mode;

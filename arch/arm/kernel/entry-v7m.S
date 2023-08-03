@@ -97,6 +97,9 @@ ENTRY(__switch_to)
 	.fnstart
 	.cantunwind
 	add	ip, r1, #TI_CPU_SAVE
+#ifdef CONFIG_ARMV7M_ENABLE_FPU
+	vstmia  ip!, {s0 - s31}
+#endif
 	stmia	ip!, {r4 - r11}		@ Store most regs on stack
 	str	sp, [ip], #4
 	str	lr, [ip], #4
@@ -107,6 +110,9 @@ ENTRY(__switch_to)
 	bl	atomic_notifier_call_chain
 	mov	ip, r4
 	mov	r0, r5
+#ifdef CONFIG_ARMV7M_ENABLE_FPU
+	vldmia  ip!, {s0 - s31}
+#endif
 	ldmia	ip!, {r4 - r11}		@ Load all regs saved previously
 	ldr	sp, [ip]
 	ldr	pc, [ip, #4]!

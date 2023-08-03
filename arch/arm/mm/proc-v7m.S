@@ -107,6 +107,18 @@ __v7m_setup:
 	mov	r8, 0
 
 __v7m_setup_cont:
+#ifdef CONFIG_ARMV7M_ENABLE_FPU
+	@ Configure access privileges for coprocessor
+	ldr r0, =V7M_CP_CPACR
+	ldr r5, [r0]
+	orr r5, r5, #(V7M_CP_CPACR_CP10 | V7M_CP_CPACR_CP11)
+	str r5, [r0]
+	@ Configure floating-point context control
+	ldr r0, =V7M_FPU_FPCCR
+	ldr r5, [r0]
+	bic r5, r5, #(V7M_FPU_FPCCR_ASPEN | V7M_FPU_FPCCR_LSPEN)
+	str r5, [r0]
+#endif
 	@ Configure the vector table base address
 	ldr	r0, =BASEADDR_V7M_SCB
 	ldr	r12, =vector_table
