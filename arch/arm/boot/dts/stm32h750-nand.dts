@@ -81,34 +81,81 @@
 		serial1 = &usart3;
 	};
 
-	leds {
-		compatible = "gpio-leds";
-		led-red {
-			gpios = <&gpioi 8 0>;
-		};
-		led-green {
-			gpios = <&gpioc 15 0>;
-			linux,default-trigger = "heartbeat";
+	soc {
+		sai1: sai@40015800 {
+			compatible = "st,stm32h7-sai";
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges = <0 0x40015800 0x400>;
+			reg = <0x40015800 0x4>;
+			clocks = <&rcc SAI1_CK>, <&rcc PLL2_P>, <&rcc PLL3_P>;
+			clock-names = "pclk", "x8k", "x11k";
+			interrupts = <87>;
+			resets = <&rcc STM32H7_APB2_RESET(SAI1)>;
+			pinctrl-0 = <&sai1_pins>;
+			pinctrl-names = "default";
+			status = "okay";
+
+			sai1a: sai@40015804 {
+				#sound-dai-cells = <0>;
+				dmas = <&dmamux1 87 0x400 0x01>;
+				dma-names = "tx";
+				#clock-cells = <0>;
+				clocks = <&rcc SAI1_CK>;
+				clock-names = "sai_ck";
+				compatible = "st,stm32-sai-sub-a";
+				reg = <0x04 0x1c>;
+				status = "okay";
+			};
 		};
 	};
 
-	v3v3: regulator-v3v3 {
-		compatible = "regulator-fixed";
-		regulator-name = "v3v3";
-		regulator-min-microvolt = <3300000>;
-		regulator-max-microvolt = <3300000>;
-		regulator-always-on;
+	sound {
+		compatible = "simple-audio-card";
+		label = "h750-sound-card";
+		dai-format = "i2s";
+		simple-audio-card,mclk-fs = <256>;
+		simple-audio-card,cpu {
+			dai-tdm-slot-tx-mask = <1 1>;
+			dai-tdm-slot-num = <2>;
+			dai-tdm-slot-width = <32>;
+			sound-dai = <&sai1a>;
+		};
+		simple-audio-card,codec {
+			sound-dai = <&es8388_codec>;
+		};
 	};
 
-	wlan_pwr: regulator-wlan {
-		compatible = "regulator-fixed";
+	softiic {
+		status = "okay";
+		compatible = "softiic";
+		scl-gpios = <&gpioh 4 0>;
+		sda-gpios = <&gpioh 5 0>;
+		clock-frequency = <100000>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges = <0 0 0x400>;
+		es8388_codec: es8388-codec@10 {
+			#sound-dai-cells = <0>;
+			compatible = "es8388-codec";
+			reg = <0x10 0x1>;
+		};
+		pcf8574: pcf8574@20 {
+			compatible = "pcf8574";
+			reg = <0x20 0x1>;
+			value = [ef];
+		};
+	};
 
-		regulator-name = "wl-reg";
-		regulator-min-microvolt = <3300000>;
-		regulator-max-microvolt = <3300000>;
-
-		gpios = <&gpioc 13 GPIO_ACTIVE_HIGH>;
-		enable-active-high;
+	display: display{
+		/* Connect panel-nt35510 to ltdc */
+		compatible = "nt35510";
+		dc-gpios = <&gpiob 5 1>;
+		port {
+			panel_in_rgb: endpoint {
+			remote-endpoint = <&ltdc_out_rgb>;
+			};
+		};
 	};
 };
 
@@ -122,78 +169,6 @@
 
 &dma2 {
 	status = "okay";
-};
-
-&mac {
-	status = "disabled";
-	pinctrl-0	= <&ethernet_rmii>;
-	pinctrl-names	= "default";
-	phy-mode	= "rmii";
-	phy-handle	= <&phy0>;
-
-	mdio0 {
-		#address-cells = <1>;
-		#size-cells = <0>;
-		compatible = "snps,dwmac-mdio";
-		phy0: ethernet-phy@0 {
-			reg = <0>;
-		};
-	};
-};
-
-&sdmmc1 {
-	pinctrl-names = "default", "opendrain", "sleep";
-	pinctrl-0 = <&sdmmc1_b4_pins_a>;
-	pinctrl-1 = <&sdmmc1_b4_od_pins_a>;
-	pinctrl-2 = <&sdmmc1_b4_sleep_pins_a>;
-	broken-cd;
-	st,neg-edge;
-	bus-width = <4>;
-	vmmc-supply = <&v3v3>;
-	status = "disabled";
-};
-
-&sdmmc2 {
-	pinctrl-names = "default", "opendrain", "sleep";
-	pinctrl-0 = <&sdmmc2_b4_pins_a>;
-	pinctrl-1 = <&sdmmc2_b4_od_pins_a>;
-	pinctrl-2 = <&sdmmc2_b4_sleep_pins_a>;
-	broken-cd;
-	non-removable;
-	st,neg-edge;
-	bus-width = <4>;
-	vmmc-supply = <&wlan_pwr>;
-	status = "disabled";
-
-	#address-cells = <1>;
-	#size-cells = <0>;
-	brcmf: bcrmf@1 {
-		reg = <1>;
-		compatible = "brcm,bcm4329-fmac";
-	};
-};
-
-&spi1 {
-	status = "disabled";
-	pinctrl-0 = <&spi1_pins>;
-	pinctrl-names = "default";
-	cs-gpios = <&gpioa 4 GPIO_ACTIVE_LOW>;
-	dmas = <&dmamux1 37 0x400 0x05>,
-	       <&dmamux1 38 0x400 0x05>;
-	dma-names = "rx", "tx";
-
-	flash@0 {
-		#address-cells = <1>;
-		#size-cells = <1>;
-		compatible = "winbond,w25q128", "jedec,spi-nor";
-		reg = <0>;
-		spi-max-frequency = <80000000>;
-
-		partition@0 {
-			label = "root filesystem";
-			reg = <0 0x1000000>;
-		};
-	};
 };
 
 &usart1_pins {
@@ -215,34 +190,63 @@
 	status = "okay";
 };
 
-&usart2 {
-	pinctrl-0 = <&usart2_pins>;
-	pinctrl-names = "default";
-	status = "disabled";
-};
-
-&usart3 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&usart3_pins>;
-	dmas = <&dmamux1 45 0x400 0x05>,
-	       <&dmamux1 46 0x400 0x05>;
-	dma-names = "rx", "tx";
-	st,hw-flow-ctrl;
-	status = "disabled";
-
-	bluetooth {
-		compatible = "brcm,bcm43438-bt";
-		host-wakeup-gpios = <&gpioc 0 GPIO_ACTIVE_HIGH>;
-		device-wakeup-gpios = <&gpioi 10 GPIO_ACTIVE_HIGH>;
-		shutdown-gpios = <&gpioi 11 GPIO_ACTIVE_HIGH>;
-		max-speed = <115200>;
+&pinctrl {
+	sai1_pins: sai1-pins {
+		pins {
+			pinmux = <STM32_PINMUX('E', 2, AF6)>, /* SAI1_MCLK_A */
+				 <STM32_PINMUX('E', 4, AF6)>, /* SAI1_FS_A */
+				 <STM32_PINMUX('E', 5, AF6)>, /* SAI1_SCK_A */
+				 <STM32_PINMUX('E', 6, AF6)>; /* SAI1_SD_A */
+			slew-rate = <3>;
+			drive-push-pull;
+			bias-disable;
+		};
+	};
+	ltdc_pins: ltdc-pins {
+		pins {
+			pinmux = <STM32_PINMUX('I', 12,  AF14)>, /* LTDC_HSYNC */
+				<STM32_PINMUX('I', 13,  AF14)>, /* LTDC_VSYNC */
+				<STM32_PINMUX('I', 14,  AF14)>, /* LTDC_CLK */
+				<STM32_PINMUX('I', 15,  AF14)>, /* LTDC_R0 */
+				<STM32_PINMUX('J', 0,  AF14)>, /* LTDC_R1 */
+				<STM32_PINMUX('J', 1,  AF14)>, /* LTDC_R2 */
+				<STM32_PINMUX('J', 2,  AF14)>, /* LTDC_R3 */
+				<STM32_PINMUX('J', 3,  AF14)>, /* LTDC_R4 */
+				<STM32_PINMUX('J', 4,  AF14)>, /* LTDC_R5 */
+				<STM32_PINMUX('J', 5,  AF14)>, /* LTDC_R6 */
+				<STM32_PINMUX('J', 6,  AF14)>, /* LTDC_R7 */
+				<STM32_PINMUX('J', 7,  AF14)>, /* LTDC_G0 */
+				<STM32_PINMUX('J', 8,  AF14)>, /* LTDC_G1 */
+				<STM32_PINMUX('J', 9,  AF14)>, /* LTDC_G2 */
+				<STM32_PINMUX('J', 10,  AF14)>, /* LTDC_G3 */
+				<STM32_PINMUX('J', 11,  AF14)>, /* LTDC_G4 */
+				<STM32_PINMUX('J', 12,  AF14)>, /* LTDC_B0 */
+				<STM32_PINMUX('J', 13,  AF14)>, /* LTDC_B1 */
+				<STM32_PINMUX('J', 14,  AF14)>, /* LTDC_B2 */
+				<STM32_PINMUX('J', 15,  AF14)>, /* LTDC_B3 */
+				<STM32_PINMUX('K', 0,  AF14)>, /* LTDC_G5 */
+				<STM32_PINMUX('K', 1,  AF14)>, /* LTDC_G6 */
+				<STM32_PINMUX('K', 2,  AF14)>, /* LTDC_G7 */
+				<STM32_PINMUX('K', 3,  AF14)>, /* LTDC_B4 */
+				<STM32_PINMUX('K', 4,  AF14)>, /* LTDC_B5 */
+				<STM32_PINMUX('K', 5,  AF14)>, /* LTDC_B6 */
+				<STM32_PINMUX('K', 6,  AF14)>, /* LTDC_B7 */
+				<STM32_PINMUX('K', 7,  AF14)>; /* LTDC_DE */
+			slew-rate = <2>;
+		};
 	};
 };
 
-&uart4 {
-	pinctrl-0 = <&uart4_pins>;
+&ltdc {
+	status = "okay";
+	pinctrl-0 = <&ltdc_pins>;
 	pinctrl-names = "default";
-	status = "disabled";
+	port {
+			ltdc_out_rgb: endpoint {
+			remote-endpoint = <&panel_in_rgb>;
+			};
+	};
 };
+
 
 
