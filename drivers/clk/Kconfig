@@ -355,7 +355,7 @@ config COMMON_CLK_STM32F
 	  Support for stm32f4 and stm32f7 SoC families clocks
 
 config COMMON_CLK_STM32H7
-	def_bool COMMON_CLK && MACH_STM32H743
+	def_bool COMMON_CLK && (MACH_STM32H743 || MACH_STM32H750)
 	help
 	  Support for stm32h7 SoC family clocks
 

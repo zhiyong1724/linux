@@ -1,0 +1,252 @@
+/*
+ * Copyright 2021 - Dillon Min <dillon.minfei@gmail.com>
+ *
+ * This file is dual-licensed: you can use it either under the terms
+ * of the GPL or the X11 license, at your option. Note that this dual
+ * licensing only applies to this file, and not this project as a
+ * whole.
+ *
+ *  a) This file is free software; you can redistribute it and/or
+ *     modify it under the terms of the GNU General Public License as
+ *     published by the Free Software Foundation; either version 2 of the
+ *     License, or (at your option) any later version.
+ *
+ *     This file is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU General Public License for more details.
+ *
+ * Or, alternatively,
+ *
+ *  b) Permission is hereby granted, free of charge, to any person
+ *     obtaining a copy of this software and associated documentation
+ *     files (the "Software"), to deal in the Software without
+ *     restriction, including without limitation the rights to use,
+ *     copy, modify, merge, publish, distribute, sublicense, and/or
+ *     sell copies of the Software, and to permit persons to whom the
+ *     Software is furnished to do so, subject to the following
+ *     conditions:
+ *
+ *     The above copyright notice and this permission notice shall be
+ *     included in all copies or substantial portions of the Software.
+ *
+ *     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ *     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ *     OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ *     NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ *     HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ *     WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ *     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ *     OTHER DEALINGS IN THE SOFTWARE.
+ *
+ * For art-pi board resources, you can refer to link:
+ * 	https://art-pi.gitee.io/website/
+ */
+
+/dts-v1/;
+#include "stm32h750.dtsi"
+#include "stm32h7-pinctrl.dtsi"
+#include <dt-bindings/interrupt-controller/irq.h>
+#include <dt-bindings/gpio/gpio.h>
+
+/ {
+	model = "Linux STM32H750-Nand board";
+	compatible = "st,stm32h750-nand", "st,stm32h750";
+
+	chosen {
+		bootargs = "console=ttySTM0,921600 init=/linuxrc CONSOLE=/dev/console";
+		stdout-path = "serial0:921600n8";
+	};
+
+	memory@c0000000 {
+		device_type = "memory";
+		reg = <0xc0000000 0x4000000>;
+	};
+
+	reserved-memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		linux,cma {
+			compatible = "shared-dma-pool";
+			no-map;
+			size = <0x100000>;
+			linux,dma-default;
+		};
+	};
+
+	aliases {
+		serial0 = &usart1;
+		serial1 = &usart3;
+	};
+
+	soc {
+		sai1: sai@40015800 {
+			compatible = "st,stm32h7-sai";
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges = <0 0x40015800 0x400>;
+			reg = <0x40015800 0x4>;
+			clocks = <&rcc SAI1_CK>, <&rcc PLL2_P>, <&rcc PLL3_P>;
+			clock-names = "pclk", "x8k", "x11k";
+			interrupts = <87>;
+			resets = <&rcc STM32H7_APB2_RESET(SAI1)>;
+			pinctrl-0 = <&sai1_pins>;
+			pinctrl-names = "default";
+			status = "okay";
+
+			sai1a: sai@40015804 {
+				#sound-dai-cells = <0>;
+				dmas = <&dmamux1 87 0x400 0x01>;
+				dma-names = "tx";
+				#clock-cells = <0>;
+				clocks = <&rcc SAI1_CK>;
+				clock-names = "sai_ck";
+				compatible = "st,stm32-sai-sub-a";
+				reg = <0x04 0x1c>;
+				status = "okay";
+			};
+		};
+	};
+
+	sound {
+		compatible = "simple-audio-card";
+		label = "h750-sound-card";
+		dai-format = "i2s";
+		simple-audio-card,mclk-fs = <256>;
+		simple-audio-card,cpu {
+			dai-tdm-slot-tx-mask = <1 1>;
+			dai-tdm-slot-num = <2>;
+			dai-tdm-slot-width = <32>;
+			sound-dai = <&sai1a>;
+		};
+		simple-audio-card,codec {
+			sound-dai = <&es8388_codec>;
+		};
+	};
+
+	softiic {
+		status = "okay";
+		compatible = "softiic";
+		scl-gpios = <&gpioh 4 0>;
+		sda-gpios = <&gpioh 5 0>;
+		clock-frequency = <100000>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges = <0 0 0x400>;
+		es8388_codec: es8388-codec@10 {
+			#sound-dai-cells = <0>;
+			compatible = "es8388-codec";
+			reg = <0x10 0x1>;
+		};
+		pcf8574: pcf8574@20 {
+			compatible = "pcf8574";
+			reg = <0x20 0x1>;
+			value = [ef];
+		};
+	};
+
+	display: display{
+		/* Connect panel-nt35510 to ltdc */
+		compatible = "nt35510";
+		dc-gpios = <&gpiob 5 1>;
+		port {
+			panel_in_rgb: endpoint {
+			remote-endpoint = <&ltdc_out_rgb>;
+			};
+		};
+	};
+};
+
+&clk_hse {
+	clock-frequency = <25000000>;
+};
+
+&dma1 {
+	status = "okay";
+};
+
+&dma2 {
+	status = "okay";
+};
+
+&usart1_pins {
+		pins1 {
+			pinmux = <STM32_PINMUX('A', 9, AF7)>; /* USART1_TX */
+			bias-disable;
+			drive-push-pull;
+			slew-rate = <0>;
+		};
+		pins2 {
+			pinmux = <STM32_PINMUX('A', 10, AF7)>; /* USART1_RX */
+			bias-disable;
+		};
+	};
+
+&usart1 {
+	pinctrl-0 = <&usart1_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&pinctrl {
+	sai1_pins: sai1-pins {
+		pins {
+			pinmux = <STM32_PINMUX('E', 2, AF6)>, /* SAI1_MCLK_A */
+				 <STM32_PINMUX('E', 4, AF6)>, /* SAI1_FS_A */
+				 <STM32_PINMUX('E', 5, AF6)>, /* SAI1_SCK_A */
+				 <STM32_PINMUX('E', 6, AF6)>; /* SAI1_SD_A */
+			slew-rate = <3>;
+			drive-push-pull;
+			bias-disable;
+		};
+	};
+	ltdc_pins: ltdc-pins {
+		pins {
+			pinmux = <STM32_PINMUX('I', 12,  AF14)>, /* LTDC_HSYNC */
+				<STM32_PINMUX('I', 13,  AF14)>, /* LTDC_VSYNC */
+				<STM32_PINMUX('I', 14,  AF14)>, /* LTDC_CLK */
+				<STM32_PINMUX('I', 15,  AF14)>, /* LTDC_R0 */
+				<STM32_PINMUX('J', 0,  AF14)>, /* LTDC_R1 */
+				<STM32_PINMUX('J', 1,  AF14)>, /* LTDC_R2 */
+				<STM32_PINMUX('J', 2,  AF14)>, /* LTDC_R3 */
+				<STM32_PINMUX('J', 3,  AF14)>, /* LTDC_R4 */
+				<STM32_PINMUX('J', 4,  AF14)>, /* LTDC_R5 */
+				<STM32_PINMUX('J', 5,  AF14)>, /* LTDC_R6 */
+				<STM32_PINMUX('J', 6,  AF14)>, /* LTDC_R7 */
+				<STM32_PINMUX('J', 7,  AF14)>, /* LTDC_G0 */
+				<STM32_PINMUX('J', 8,  AF14)>, /* LTDC_G1 */
+				<STM32_PINMUX('J', 9,  AF14)>, /* LTDC_G2 */
+				<STM32_PINMUX('J', 10,  AF14)>, /* LTDC_G3 */
+				<STM32_PINMUX('J', 11,  AF14)>, /* LTDC_G4 */
+				<STM32_PINMUX('J', 12,  AF14)>, /* LTDC_B0 */
+				<STM32_PINMUX('J', 13,  AF14)>, /* LTDC_B1 */
+				<STM32_PINMUX('J', 14,  AF14)>, /* LTDC_B2 */
+				<STM32_PINMUX('J', 15,  AF14)>, /* LTDC_B3 */
+				<STM32_PINMUX('K', 0,  AF14)>, /* LTDC_G5 */
+				<STM32_PINMUX('K', 1,  AF14)>, /* LTDC_G6 */
+				<STM32_PINMUX('K', 2,  AF14)>, /* LTDC_G7 */
+				<STM32_PINMUX('K', 3,  AF14)>, /* LTDC_B4 */
+				<STM32_PINMUX('K', 4,  AF14)>, /* LTDC_B5 */
+				<STM32_PINMUX('K', 5,  AF14)>, /* LTDC_B6 */
+				<STM32_PINMUX('K', 6,  AF14)>, /* LTDC_B7 */
+				<STM32_PINMUX('K', 7,  AF14)>; /* LTDC_DE */
+			slew-rate = <2>;
+		};
+	};
+};
+
+&ltdc {
+	status = "okay";
+	pinctrl-0 = <&ltdc_pins>;
+	pinctrl-names = "default";
+	port {
+			ltdc_out_rgb: endpoint {
+			remote-endpoint = <&panel_in_rgb>;
+			};
+	};
+};
+
+
+
